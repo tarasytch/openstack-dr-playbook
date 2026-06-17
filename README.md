@@ -60,7 +60,6 @@ Each DR test follows a structured sequence:
 
 | Component | Failure Scenario | Recovery Mechanism |
 |-----------|-----------------|-------------------|
-| Galera (Rower) | MySQL endpoint switching | Consul catalog update |
 | Consul | Service discovery unavailable | Quorum-based failover |
 | HAProxy | Backend routing failure | Backend health check re-validation |
 | VictoriaMetrics | Monitoring storage unavailable | Replication failover |
@@ -69,35 +68,73 @@ Each DR test follows a structured sequence:
 
 ---
 
-## Escalation Process
+## Incident Escalation Process
 
-### Incident Response Flow
+### Critical Incident Definition
+
+An incident is considered **critical** when **both** conditions are met:
+
+**Condition 1** — incident affects at least one of:
+- VIP / enterprise clients
+- 3+ clients simultaneously
+- Critical services: VM operations, UI availability, billing
+
+**Condition 2** — on-call engineer cannot determine resolution timeline within **20 minutes**
+
+### On-Call Coverage
+
+| Shift Type | Schedule |
+|-----------|----------|
+| Daily on-call | Weekdays, assigned per shift schedule |
+| Weekly on-call | 24/7, covers nights and weekends |
+| Contact in business hours | Team chat |
+| Contact outside business hours | Phone call |
+
+### Escalation Chain
 
 ```
-Anomaly detected (Grafana alert to VK WorkSpace)
+Alert detected (Grafana + monitoring channel)
         |
         v
-On-call engineer — initial triage (5 min)
+L1 — Client Support (on-call)
+First response. Triage, initial assessment.
         |
-        +-- Resolved --> Post-mortem in Confluence
+        +-- Resolved
         |
-        +-- Escalated --> Component owner team
-                |
-                +-- Resolved --> Jira ticket + fix tracking
-                |
-                +-- Critical --> Cross-team war room
-                        |
-                        +-- Platform PM coordination
+        +-- Cannot resolve or assess in 20 min --> L2
+        |
+L2 — Technical Support (on-call, per shift schedule)
+Component-level diagnosis and fix.
+        |
+        +-- Resolved --> Post-mortem, Jira ticket
+        |
+        +-- Escalated --> L2 Team Lead
+        |
+L3 — Engineering Management
+Multi-component or prolonged incidents.
+Involves platform operations director.
+        |
+        +-- Escalated --> L4
+        |
+L4 — Executive Level
+Full platform degradation or AZ-level failure.
+VK Tech leadership involved.
 ```
 
-### Escalation Matrix
+### Escalation Matrix by Service
 
-| Level | Trigger | Responder | SLA |
-|-------|---------|-----------|-----|
-| L1 | Alert fired | On-call engineer | 5 min response |
-| L2 | No recovery in 15 min | Component team lead | 15 min |
-| L3 | Multiple components affected | Platform PM + Engineering leads | 30 min |
-| L4 | Full AZ degradation | CTO-level escalation | Immediate |
+| Business Scenario | Service | L1 | L2 |
+|------------------|---------|----|----|
+| VMs running / new VMs created | IaaS | Client Support on-call | Tech Support on-call |
+| UI available | Frontend (Personal Account) | Client Support on-call | Tech Support on-call |
+| UI available | Frontend (Docs, Status Page) | Client Support on-call | Tech Support on-call |
+| Billing operational | Billing (Scrooge) | Client Support on-call | Tech Support on-call |
+| Auth operational | IAM | Client Support on-call | Tech Support on-call |
+| Backup operational | RunTime | Client Support on-call | Tech Support on-call |
+| PaaS operational | EventHouse, VDI, XaaS | Client Support on-call | Tech Support on-call |
+| Data platform operational | DBaaS, BigData, ML Platform | Client Support on-call | Tech Support on-call |
+
+Each service has a defined 4-level escalation chain up to executive level.
 
 ---
 
